@@ -11,7 +11,54 @@ class MoviesController < ApplicationController
   end
 
   def index
-    @movies = Movie.all
+    
+    if(!params.has_key?(:sort) && !params.has_key?(:ratings))
+      if(session.has_key?(:sort) || session.has_key?(:ratings))
+        redirect_to movies_path(:sort=>session[:sort], :ratings=>session[:ratings])
+      end
+    end
+    
+    if params[:sort] != nil
+      session[:sort] = params[:sort]
+    end
+    
+    @all_ratings = Movie.ratings
+    @selected_ratings = {}
+    if params[:ratings] != nil
+      params[:ratings].each { |rating|
+        @selected_ratings[rating] = 1
+      }
+      session[:ratings] = @selected_ratings
+    else
+      session[:ratings].each { |rating|
+        @selected_ratings[rating] = 1
+      }
+    end
+    
+    if !@selected_ratings.empty?
+      @movies = Movie.where(rating: @selected_ratings.keys)
+      session[:ratings] = @selected_ratings.keys
+      @checked = @selected_ratings.keys
+    elsif session[:ratings] == nil && params[:ratings] == nil
+      @movies = Movie.all
+      @checked = @all_ratings
+    else
+      @movies = Movie.all
+      session[:ratings] = @all_ratings
+      @checked = @all_ratings
+    end
+    
+    
+    if params[:sort] == 'title'
+      @title_header = 'hilite'
+      @movies = @movies.sort{|m1, m2| m1.title <=> m2.title}
+    elsif params[:sort] == 'release_date'
+      @release_date_header = 'hilite'
+      @movies = @movies.sort{|m1, m2| m1.release_date <=> m2.release_date}
+    else
+      @title_header = ''
+      @release_date_header = ''
+    end
   end
 
   def new
